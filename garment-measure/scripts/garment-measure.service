@@ -1,0 +1,19 @@
+# systemd unit: start Garment Measure automatically on the DGX.
+#   sudo cp scripts/garment-measure.service /etc/systemd/system/
+#   (edit User= and the two paths below)
+#   sudo systemctl daemon-reload && sudo systemctl enable --now garment-measure
+#   journalctl -u garment-measure -f        # logs
+[Unit]
+Description=Garment Measure (phone garment measuring app)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=CHANGE_ME
+WorkingDirectory=/opt/garment-measure
+ExecStart=/opt/garment-measure/run.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
