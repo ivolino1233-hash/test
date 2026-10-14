@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Garment Measure – phone setup</title>
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <style>body { padding-bottom: 24px; } details summary { cursor: pointer; font-weight: 650; }</style>
+</head>
+<body>
+  <header class="topbar"><div class="brand"><img src="/static/icon.svg" alt=""><span>Phone setup</span></div></header>
+  <main>
+    <div class="card">
+      <h2>Set up a phone</h2>
+      <p class="muted">Do this once per phone. The phone must be on the same Wi-Fi as this computer.</p>
+      <p id="secureNote" class="notice info hidden">You are already on the secure link – the live camera will work.
+        <a href="/">Open the app</a></p>
+    </div>
+
+    <ol class="steps card">
+      <li><b>Print the reference sheet</b> at 100 % (“Actual size”) and glue it to card.
+        <div class="row" style="margin-top:8px">
+          <a class="btn" href="/marker.pdf?sheets=1" target="_blank">1 sheet (PDF)</a>
+          <a class="btn" href="/marker.pdf?sheets=2" target="_blank">2 sheets (PDF)</a>
+        </div></li>
+
+      <li><b>Install the certificate</b> so the phone trusts this computer's secure link (needed for the live camera).
+        <div id="caMissing" class="notice hidden" style="margin-top:8px">No certificate on the server yet – run
+          <code>scripts/make_cert.sh</code> on the computer, then restart the app.</div>
+        <div id="caBox" style="margin-top:8px">
+          <a class="btn primary" href="/ca.crt">Download certificate</a>
+          <details style="margin-top:10px"><summary>iPhone / iPad</summary>
+            <ol class="small">
+              <li>Open this page in <b>Safari</b> and tap <i>Download certificate</i> → <i>Allow</i>.</li>
+              <li>Settings → <i>Profile Downloaded</i> → <i>Install</i> (enter your passcode).</li>
+              <li>Settings → General → About → <i>Certificate Trust Settings</i> → switch on <b>Garment Measure Local CA</b>.</li>
+            </ol></details>
+          <details style="margin-top:6px"><summary>Android</summary>
+            <ol class="small">
+              <li>Tap <i>Download certificate</i>.</li>
+              <li>Settings → Security (or “Security &amp; privacy”) → More → Encryption &amp; credentials →
+                <i>Install a certificate</i> → <b>CA certificate</b> → <i>Install anyway</i> → pick the downloaded file.</li>
+              <li>The exact menu names differ by brand; search Settings for “CA certificate”.</li>
+            </ol></details>
+        </div></li>
+
+      <li><b>Open the app</b> on the secure link (scan the code or tap it), then use your browser's
+        “Add to Home Screen”.
+        <div id="links" style="margin-top:10px"></div></li>
+    </ol>
+
+    <div class="card stack">
+      <h3>Can't install the certificate?</h3>
+      <p class="muted small">Use the app on the plain link instead. Live camera is not available there, but
+        <b>Take photo</b> opens the phone's own camera and gives the sharpest pictures anyway.</p>
+      <div id="plain"></div>
+    </div>
+
+    <div class="card stack">
+      <h3>Phone can't open the page?</h3>
+      <ul class="small muted">
+        <li>Phone and computer must be on the same Wi-Fi. Guest networks usually block devices from seeing each other.</li>
+        <li>Allow the ports through the computer's firewall (e.g. <code>sudo ufw allow 8443,8080/tcp</code>).</li>
+        <li>Give the computer a fixed address in the router (DHCP reservation) so the link and certificate stay valid.</li>
+      </ul>
+    </div>
+  </main>
+  <script type="module">
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    const info = await (await fetch("/api/connect-info")).json();
+    if (location.protocol === "https:") document.getElementById("secureNote").classList.remove("hidden");
+    if (!info.ca) {
+      document.getElementById("caMissing").classList.remove("hidden");
+      document.getElementById("caBox").classList.add("hidden");
+    }
+    const qr = (u) => `<img class="qr" alt="QR code for ${esc(u)}" src="/api/qr.svg?text=${encodeURIComponent(u)}">`;
+    const secure = info.https ? info.https_urls : [];
+    document.getElementById("links").innerHTML = secure.length
+      ? secure.map((u) => `<div class="row" style="margin-bottom:10px">${qr(u)}<a class="btn primary" href="${esc(u)}">${esc(u)}</a></div>`).join("")
+      : `<p class="notice">The secure link is not set up yet (no certificate). Use the plain link below for now.</p>`;
+    document.getElementById("plain").innerHTML = info.http_urls
+      .map((u) => `<div class="row">${qr(u)}<a class="btn" href="${esc(u)}/">${esc(u)}</a></div>`).join("");
+  </script>
+</body>
+</html>
